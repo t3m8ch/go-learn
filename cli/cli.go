@@ -72,6 +72,9 @@ func Loop(productRepo db.ProductRepository) {
 			}
 
 			fmt.Println(product)
+		case "exit":
+			fmt.Println("Bye!")
+			return
 		}
 	}
 }
