@@ -4,16 +4,29 @@ import (
 	"context"
 	"fmt"
 	"go-learn/cli"
-	"go-learn/db"
+	"go-learn/db/models"
+	"go-learn/db/pg"
 	"os"
 
+	pgxdecimal "github.com/jackc/pgx-shopspring-decimal"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	pool, err := pgxpool.New(
+	config, err := pgxpool.ParseConfig("postgres://t3m8ch@localhost/productsdb")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to parse connection string: %v\n", err)
+		os.Exit(1)
+	}
+	config.AfterConnect = func(_ context.Context, conn *pgx.Conn) error {
+		pgxdecimal.Register(conn.TypeMap())
+		return nil
+	}
+
+	pool, err := pgxpool.NewWithConfig(
 		context.Background(),
-		"postgres://t3m8ch@localhost/productsdb",
+		config,
 	)
 
 	if err != nil {
@@ -23,7 +36,7 @@ func main() {
 
 	defer pool.Close()
 
-	db.Init(pool)
-	productRepo := db.CreatePgProductRepository(pool)
+	pg.Init(pool)
+	productRepo := pg.CreatePgRepository[models.Product](pool)
 	cli.Loop(&productRepo)
 }

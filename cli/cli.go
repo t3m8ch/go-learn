@@ -4,13 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"go-learn/db"
+	"go-learn/db/models"
 	"os"
 	"strconv"
-
-	"github.com/shopspring/decimal"
 )
 
-func Loop(productRepo db.ProductRepository) {
+func Loop(productRepo db.Repository[models.Product]) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("> ")
@@ -18,42 +17,13 @@ func Loop(productRepo db.ProductRepository) {
 		fmt.Scan(&cmd)
 
 		switch cmd {
-		case "add":
-			var product db.Product
-
-			fmt.Print("title: ")
-			scanner.Scan()
-			product.Title = scanner.Text()
-
-			fmt.Print("description: ")
-			scanner.Scan()
-			product.Description = scanner.Text()
-
-			fmt.Print("price: ")
-			scanner.Scan()
-			priceStr := scanner.Text()
-
-			price, err := decimal.NewFromString(priceStr)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Invalid price")
-				continue
-			}
-			product.Price = price
-
-			p, err := productRepo.Save(product)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				continue
-			}
-
-			fmt.Println(p)
 		case "getall":
 			products, err := productRepo.GetAll()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				continue
 			}
-			for _, p := range *products {
+			for _, p := range products {
 				fmt.Println(p)
 			}
 		case "get":
@@ -65,7 +35,7 @@ func Loop(productRepo db.ProductRepository) {
 				continue
 			}
 
-			product, err := productRepo.GetById(id)
+			product, err := productRepo.GetOne("id", id)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				continue
