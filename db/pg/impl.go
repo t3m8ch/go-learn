@@ -53,6 +53,36 @@ func (r *PgRepository[T]) GetOne(key any, value any) (*T, error) {
 	return entity, nil
 }
 
+func (r *PgRepository[T]) GetOneSql(genSql func(cols []string) string, args ...any) (*T, error) {
+	rows, err := r.pgPool.Query(
+		context.Background(),
+		genSql(getCols[T]()),
+		args...,
+	)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !rows.Next() {
+		return nil, db.ErrNotFound
+	}
+
+	values, err := rows.Values()
+
+	if err != nil {
+		return nil, err
+	}
+
+	entity, err := fillEntity[T](values)
+	if err != nil {
+		return nil, err
+	}
+
+	return entity, nil
+}
+
 func (r *PgRepository[T]) GetAll() ([]T, error) {
 	rows, err := r.pgPool.Query(
 		context.Background(),

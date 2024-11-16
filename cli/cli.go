@@ -7,6 +7,7 @@ import (
 	"go-learn/db/models"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func Loop(productRepo db.Repository[models.Product]) {
@@ -36,6 +37,26 @@ func Loop(productRepo db.Repository[models.Product]) {
 			}
 
 			product, err := productRepo.GetOne("id", id)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
+			}
+
+			fmt.Println(product)
+		case "getfirst":
+			product, err := productRepo.GetOneSql(func(cols []string) string {
+				return fmt.Sprintf("SELECT %s FROM products ORDER BY title ASC", strings.Join(cols, ","))
+			})
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
+			}
+
+			fmt.Println(product)
+		case "getlast":
+			product, err := productRepo.GetOneSql(func(cols []string) string {
+				return fmt.Sprintf("SELECT %s FROM products ORDER BY title DESC", strings.Join(cols, ","))
+			})
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				continue

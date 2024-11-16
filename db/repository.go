@@ -15,10 +15,10 @@ var ErrConflict = errors.New("Conflict")
 
 type Repository[T Entity] interface {
 	GetOne(key any, value any) (*T, error)
-	// GetOneSql(sql string) (*T, error)
+	GetOneSql(genSql func(cols []string) string, args ...any) (*T, error)
 	GetAll() ([]T, error)
-	// GetManySql(sql string) ([]T, error)
-	// ExecuteSql(sql string) (any, error)
+	// GetManySql(sql string, args ...any) ([]T, error)
+	// ExecuteSql(sql string, args ...any) (any, error)
 	// Add(entities ...T) (*T, error)
 	// AddIgnoreCoflict(entities ...*T) (*T, error)
 	// Update(entity *T) error
