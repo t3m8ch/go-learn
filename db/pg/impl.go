@@ -19,8 +19,7 @@ func CreatePgRepository[T db.Entity](pgPool *pgxpool.Pool) PgRepository[T] {
 }
 
 func (r *PgRepository[T]) GetOne(key any, value any) (*T, error) {
-	rows, err := r.pgPool.Query(
-		context.Background(),
+	return r.getOneSql(
 		fmt.Sprintf(
 			"SELECT %s FROM %s WHERE %s = $1",
 			strings.Join(getCols[T](), ","),
@@ -29,58 +28,13 @@ func (r *PgRepository[T]) GetOne(key any, value any) (*T, error) {
 		),
 		value,
 	)
-	defer rows.Close()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if !rows.Next() {
-		return nil, db.ErrNotFound
-	}
-
-	values, err := rows.Values()
-
-	if err != nil {
-		return nil, err
-	}
-
-	entity, err := fillEntity[T](values)
-	if err != nil {
-		return nil, err
-	}
-
-	return entity, nil
 }
 
 func (r *PgRepository[T]) GetOneSql(genSql func(cols []string) string, args ...any) (*T, error) {
-	rows, err := r.pgPool.Query(
-		context.Background(),
+	return r.getOneSql(
 		genSql(getCols[T]()),
 		args...,
 	)
-	defer rows.Close()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if !rows.Next() {
-		return nil, db.ErrNotFound
-	}
-
-	values, err := rows.Values()
-
-	if err != nil {
-		return nil, err
-	}
-
-	entity, err := fillEntity[T](values)
-	if err != nil {
-		return nil, err
-	}
-
-	return entity, nil
 }
 
 func (r *PgRepository[T]) GetAll() ([]T, error) {
@@ -116,6 +70,36 @@ func (r *PgRepository[T]) GetAll() ([]T, error) {
 	}
 
 	return entities, nil
+}
+
+func (r *PgRepository[T]) getOneSql(sql string, args ...any) (*T, error) {
+	rows, err := r.pgPool.Query(
+		context.Background(),
+		sql,
+		args...,
+	)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !rows.Next() {
+		return nil, db.ErrNotFound
+	}
+
+	values, err := rows.Values()
+
+	if err != nil {
+		return nil, err
+	}
+
+	entity, err := fillEntity[T](values)
+	if err != nil {
+		return nil, err
+	}
+
+	return entity, nil
 }
 
 func getCols[T db.Entity]() []string {
