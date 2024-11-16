@@ -31,21 +31,25 @@ func (r *PgRepository[T]) GetOne(key any, value any) (*T, error) {
 }
 
 func (r *PgRepository[T]) GetOneSql(genSql func(cols []string) string, args ...any) (*T, error) {
-	return r.getOneSql(
-		genSql(getCols[T]()),
-		args...,
-	)
+	return r.getOneSql(genSql(getCols[T]()), args...)
 }
 
 func (r *PgRepository[T]) GetAll() ([]T, error) {
-	rows, err := r.pgPool.Query(
-		context.Background(),
+	return r.getManySql(
 		fmt.Sprintf(
 			"SELECT %s FROM %s",
 			strings.Join(getCols[T](), ","),
 			getTableName[T](),
 		),
 	)
+}
+
+func (r *PgRepository[T]) GetManySql(genSql func(cols []string) string, args ...any) ([]T, error) {
+	return r.getManySql(genSql(getCols[T]()), args...)
+}
+
+func (r *PgRepository[T]) getManySql(sql string, args ...any) ([]T, error) {
+	rows, err := r.pgPool.Query(context.Background(), sql, args...)
 	defer rows.Close()
 
 	if err != nil {

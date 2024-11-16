@@ -63,6 +63,17 @@ func Loop(productRepo db.Repository[models.Product]) {
 			}
 
 			fmt.Println(product)
+		case "getodd":
+			products, err := productRepo.GetManySql(func(cols []string) string {
+				return fmt.Sprintf("SELECT %s FROM products WHERE id %% 2 = 1", strings.Join(cols, ","))
+			})
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
+			}
+			for _, p := range products {
+				fmt.Println(p)
+			}
 		case "exit":
 			fmt.Println("Bye!")
 			return
