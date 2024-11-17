@@ -30,7 +30,7 @@ func (r *PgRepository[T]) GetOne(key any, value any) (*T, error) {
 	)
 }
 
-func (r *PgRepository[T]) GetOneSql(genSql func(cols []string) string, args ...any) (*T, error) {
+func (r *PgRepository[T]) GetOneSql(genSql db.GenSqlFunc, args ...any) (*T, error) {
 	return r.getOneSql(genSql(getCols[T]()), args...)
 }
 
@@ -44,7 +44,7 @@ func (r *PgRepository[T]) GetAll() ([]T, error) {
 	)
 }
 
-func (r *PgRepository[T]) GetManySql(genSql func(cols []string) string, args ...any) ([]T, error) {
+func (r *PgRepository[T]) GetManySql(genSql db.GenSqlFunc, args ...any) ([]T, error) {
 	return r.getManySql(genSql(getCols[T]()), args...)
 }
 
