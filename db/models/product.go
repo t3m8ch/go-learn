@@ -22,6 +22,7 @@ func (p Product) TableName() string {
 	return "products"
 }
 
-func (p Product) PrimaryKey() (any, any) {
+// TODO: Typify primary key
+func (p Product) PrimaryKey() (string, any) {
 	return "id", p.Id
 }

@@ -2,7 +2,7 @@ package db
 
 import "errors"
 
-type pkey = any
+type pkey = string
 type pvalue = any
 
 type Entity interface {
@@ -11,7 +11,6 @@ type Entity interface {
 }
 
 var ErrNotFound = errors.New("Not found")
-var ErrConflict = errors.New("Conflict")
 
 type GenSqlFunc = func(cols []string) string
 
@@ -20,9 +19,7 @@ type Repository[T Entity] interface {
 	GetOneSql(genSql GenSqlFunc, args ...any) (*T, error)
 	GetAll() ([]T, error)
 	GetManySql(genSql GenSqlFunc, args ...any) ([]T, error)
-	// ExecuteSql(sql string, args ...any) (any, error)
-	// Add(entities ...T) (*T, error)
-	// AddIgnoreCoflict(entities ...*T) (*T, error)
+	Add(entities ...T) ([]T, error)
 	// Update(entity *T) error
 	// DeleteOne(key any, value any) error
 }

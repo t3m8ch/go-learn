@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go-learn/db"
 	"reflect"
@@ -46,6 +47,16 @@ func (r *PgRepository[T]) GetAll() ([]T, error) {
 
 func (r *PgRepository[T]) GetManySql(genSql db.GenSqlFunc, args ...any) ([]T, error) {
 	return r.getManySql(genSql(getCols[T]()), args...)
+}
+
+func (r *PgRepository[T]) Add(entities ...T) ([]T, error) {
+	sql, values, err := buildInsertSql(entities...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return r.getManySql(sql, values...)
 }
 
 func (r *PgRepository[T]) getManySql(sql string, args ...any) ([]T, error) {
@@ -106,6 +117,70 @@ func (r *PgRepository[T]) getOneSql(sql string, args ...any) (*T, error) {
 	return entity, nil
 }
 
+func buildInsertSql[T db.Entity](entities ...T) (string, []any, error) {
+	cols := getCols[T]()
+	returningSql := fmt.Sprintf("RETURNING %s", strings.Join(cols, ","))
+
+	pkIdx, err := getPkIdx(cols, getPrimaryKey[T]())
+	if err != nil {
+		return "", nil, err
+	}
+
+	cols = append(cols[:pkIdx], cols[pkIdx+1:]...)
+
+	var sqlSb strings.Builder
+	sqlSb.WriteString(fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES\n",
+		getTableName[T](),
+		strings.Join(cols, ","),
+	))
+
+	values := pushValuesToSql(&sqlSb, entities, cols, pkIdx)
+	sqlSb.WriteString(returningSql)
+
+	return sqlSb.String(), values, nil
+}
+
+func pushValuesToSql[T db.Entity](sqlSb *strings.Builder, entities []T, cols []string, pkIdx int) []any {
+	values := make([]any, 0, len(cols)*len(entities))
+
+	for i, entity := range entities {
+		sqlSb.WriteString("(")
+		entityValues := getValues(entity)
+		entityValues = append(entityValues[:pkIdx], entityValues[pkIdx+1:]...)
+
+		for j := range entityValues {
+			num := i*len(entityValues) + j + 1
+			sqlSb.WriteString(fmt.Sprintf("$%d", num))
+
+			if j < len(entityValues)-1 {
+				sqlSb.WriteString(", ")
+			}
+		}
+
+		sqlSb.WriteString(")")
+
+		if i != len(entities)-1 {
+			sqlSb.WriteString(",")
+		}
+
+		sqlSb.WriteString("\n")
+		values = append(values, entityValues...)
+	}
+
+	return values
+}
+
+func getPkIdx(cols []string, pk string) (int, error) {
+	for i, v := range cols {
+		if v == pk {
+			return i, nil
+		}
+	}
+
+	return -1, errors.New(fmt.Sprintf("PK '%s' not found", pk))
+}
+
 func getCols[T db.Entity]() []string {
 	var entity T
 
@@ -146,4 +221,22 @@ func fillEntity[T db.Entity](valuesFromDB []any) (*T, error) {
 
 	entity := entityValue.Interface().(T)
 	return &entity, nil
+}
+
+func getValues[T db.Entity](entity T) []any {
+	value := reflect.ValueOf(entity)
+	result := make([]any, 0, value.NumField())
+
+	for i := 0; i < value.NumField(); i++ {
+		fieldValue := value.Field(i)
+		result = append(result, fieldValue.Interface())
+	}
+
+	return result
+}
+
+func getPrimaryKey[T db.Entity]() string {
+	var e T
+	pk, _ := e.PrimaryKey()
+	return pk
 }
